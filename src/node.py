@@ -1,9 +1,9 @@
 from __future__ import print_function
 
 import random
+import socket
 
 import Pyro4
-import socket
 
 products = ['fish', 'salt', 'boars']
 
@@ -11,14 +11,14 @@ products = ['fish', 'salt', 'boars']
 @Pyro4.expose
 @Pyro4.behavior(instance_mode="single")
 class Node(object):
-    def __init__(self, id, ip, peertype, product_name = None, product_count = None):
+    def __init__(self, id, ip, peertype):
         self.id = id
         self.ip = ip
         self.peertype = peertype
         self.neighbourlist = []
-        self.product_name = product_name
-        self.product_count = product_count
-        self.max_items = 3
+        if peertype == 'seller':
+            self.product_name = random.choice(products)
+            self.product_count = 3  # Configure this
 
     # Randomly assign buyer or seller
 
@@ -39,7 +39,7 @@ class Node(object):
 
         hopcount -= 1
 
-        if self.type == "seller" and product_name == self.product_name:
+        if self.peertype == "seller" and product_name == self.product_name:
             self.reply(self.id, peer_path)
 
         for neighbour in self.neighbourlist:

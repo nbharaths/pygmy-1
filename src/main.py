@@ -6,25 +6,23 @@ import pandas as pd
 
 from node import Node
 
+products = ['fish', 'salt', 'boars']
+
 
 def main():
-    peer_type = ['buyer', 'seller']
+    peer_types = ['buyer', 'seller']
     df_ip = pd.read_csv('ips.csv', delimiter=',')
-    N = df_ip.shape[0]
-    print('Number of nodes in network - ', N)
+    n = df_ip.shape[0]
+    max_items = 3  # make this configurable
+    print('Number of nodes in network - ', n)
     df_conn = pd.read_csv('connections.csv')
 
     nodes = {}
     for index, row in df_ip.iterrows():
-        # print(row['Node'], row['IP'])
-        nodes[row['Node']] = Node(row['Node'], row['IP'], random.choice(peer_type))
+        nodes[row['Node']] = Node(row['Node'], row['IP'], random.choice(peer_types))
 
     for index, row in df_conn.iterrows():
         nodes[row['Node1']].add_neighbour(nodes[row['Node2']])
-
-    # for node in nodes:
-
-    # print(nodes)
 
 
 if __name__ == "__main__":
