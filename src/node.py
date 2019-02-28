@@ -1,6 +1,10 @@
 from __future__ import print_function
 
+import random
+
 import Pyro4
+
+products = ['fish', 'salt', 'boars']
 
 
 @Pyro4.expose
@@ -13,11 +17,19 @@ class Node(object):
         self.neighbourlist = []
         self.product_name = product_name
         self.product_count = product_count
+        self.max_items = 3
 
     # Randomly assign buyer or seller
 
     def add_neighbour(self, neighbour):
         self.neighbourlist.append(neighbour)
+
+    def transact(self):
+        self.product_count -= 1
+
+        if self.product_count == 0:
+            self.product_name = random.choice(products)
+            self.product_count = self.max_items
 
     def lookup(self, product_name, hopcount):
 
@@ -36,7 +48,8 @@ class Node(object):
         pass
 
     def buy(self, peerid):
-        pass
+        peerid.transact()
+        print('Bought from ', peerid)
 
 
 def main():
