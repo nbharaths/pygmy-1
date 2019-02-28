@@ -20,7 +20,7 @@ def main():
         nodes[row['Node']] = Node(row['Node'], row['IP'], random.choice(peer_type))
 
     for index, row in df_conn.iterrows():
-        nodes[row['Node1']].add_neighbour(row['Node2'])
+        nodes[row['Node1']].add_neighbour(nodes[row['Node2']])
 
     # for node in nodes:
 
