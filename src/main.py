@@ -11,14 +11,15 @@ def main():
     peer_type = ['buyer', 'seller']
     df_ip = pd.read_csv('ips.csv')
     N = df_ip.shape[0]
+    print('Number of nodes in network', N)
     df_conn = pd.read_csv('connections.csv')
 
-    nodes = []
+    nodes = {}
     for index, row in df_ip.iterrows():
-        nodes.append(Node(random.choice(peer_type)))
+        nodes[row['Node']] = Node(row['Node'], row['IP'], random.choice(peer_type))
 
-    for node in nodes:
-        print(node.type)
+    for index, row in df_conn.iterrows():
+        nodes[row['Node1']].add_neighbour(row['Node2'])
 
 
 if __name__ == "__main__":
