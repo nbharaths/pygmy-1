@@ -3,6 +3,7 @@ from __future__ import print_function
 import random
 
 import Pyro4
+import socket
 
 products = ['fish', 'salt', 'boars']
 
@@ -31,7 +32,7 @@ class Node(object):
             self.product_name = random.choice(products)
             self.product_count = self.max_items
 
-    def lookup(self, product_name, hopcount):
+    def lookup(self, product_name, hopcount, peer_path):
 
         if hopcount == 0:
             return
@@ -39,16 +40,23 @@ class Node(object):
         hopcount -= 1
 
         if self.type == "seller" and product_name == self.product_name:
-            self.reply(self.id)
+            self.reply(self.id, peer_path)
 
         for neighbour in self.neighbourlist:
-            neighbour.lookup(product_name, hopcount)
+            neighbour.lookup(product_name, hopcount, peer_path + [self.id])
 
-    def reply(self, sellerid):
-        pass
+    def reply(self, sellerid, peer_path):
+        if not peer_path:
+            self.buy(sellerid)
+
+        for neighbour in self.neighbourlist:
+            if neighbour.id == peer_path[-1]:
+                peer_path.pop()
+                neighbour.reply(sellerid, peer_path)
 
     def buy(self, peerid):
-        peerid.transact()
+        peer_node = Pyro4.Proxy(peerid)
+        peer_node.transact()
         print('Bought from ', peerid)
 
 
@@ -57,6 +65,7 @@ def main():
         {
             Node: "src.node"
         },
+        host=socket.gethostbyname(socket.gethostname()),
         ns=True)
 
 
