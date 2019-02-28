@@ -16,13 +16,15 @@ def main():
 
     nodes = {}
     for index, row in df_ip.iterrows():
-        print(row['Node'], row['IP'])
+        # print(row['Node'], row['IP'])
         nodes[row['Node']] = Node(row['Node'], row['IP'], random.choice(peer_type))
 
     for index, row in df_conn.iterrows():
         nodes[row['Node1']].add_neighbour(row['Node2'])
 
-    print(nodes)
+    # for node in nodes:
+
+    # print(nodes)
 
 
 if __name__ == "__main__":

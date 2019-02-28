@@ -6,10 +6,11 @@ import Pyro4
 @Pyro4.expose
 @Pyro4.behavior(instance_mode="single")
 class Node(object):
-    def __init__(self, id, ip, type):
+    def __init__(self, id, ip, peertype):
         self.id = id
         self.ip = ip
-        self.type = type
+        self.peertype = peertype
+        self.neighbourlist = []
 
     # Randomly assign buyer or seller
 
