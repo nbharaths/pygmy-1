@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import Pyro4
 
 
@@ -18,3 +19,15 @@ class Node(object):
 
     def buy(self, peerID):
         pass
+
+
+def main():
+    Pyro4.Daemon.serveSimple(
+        {
+            Node: "src.node"
+        },
+        ns=True)
+
+
+if __name__ == "__main__":
+    main()
