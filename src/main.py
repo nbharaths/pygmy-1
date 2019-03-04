@@ -29,7 +29,8 @@ def main():
         nodes[row['Node2']].add_neighbour(nodes[row['Node1']])
 
     for node in nodes.values():
-        if node.get_peertype() == peer_types[0]:  # TO DO: Create constants for peer types
+        if node.get_peertype() == peer_types[0]:
+            # TO DO: Create constants for peer types
             node.node_start()
 
 if __name__ == "__main__":

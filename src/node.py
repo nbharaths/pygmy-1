@@ -26,13 +26,16 @@ class Node(object):
     wait_time = None
     can_buy = True
 
-    def get_peertype(self):  # exposed
+    # exposed
+    def get_peertype(self):
         return self.peertype
 
-    def get_node_id(self):  # exposed
+    # exposed
+    def get_node_id(self):
         return self.node_id
 
-    def get_product_name(self):  # exposed
+    # exposed
+    def get_product_name(self):
         return self.product_name
 
     def init(self, node_id, ip, peertype, wait_time = 1, product_count = 3, hop_count = 3):
@@ -49,20 +52,34 @@ class Node(object):
             self.hop_count = hop_count
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
+    def node_start_t(self):
+        for i in range(10):  # TO DO: Needs to be run infinitely
+            wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
+
+            self.product_to_buy = random.choice(products)
+            print("!! Searching for", self.product_to_buy)
+            self.lookup(self.product_to_buy, self.hop_count, [])
+            print("Waiting for ", wait_time)
+            time.sleep(wait_time)
+
+            if self.sellers_list:
+                selected_seller = random.choice(self.sellers_list)
+                self.buy(selected_seller)
+            else:
+                print("Buy order failed !!")
+
+
 
     def node_start(self):
-        for i in range(4):
-            time.sleep(0.75)
-            product_to_buy = random.choice(products)
-            self.lookup(product_to_buy, self.hop_count, [])
-            print("!! Searching for", product_to_buy)
+        node_start_thread = t.Thread(target=self.node_start_t())
+        node_start_thread.start()
 
     def add_neighbour(self, neighbour):
         self.neighbourlist.append(neighbour)
 
     def transact(self):
-        t.Lock().acquire()
-        print("Acquired lock")
+        # t.Lock().acquire()
+        # print("Acquired lock")
         self.product_count -= 1
         print("Selling", self.product_name, "Product Count", self.product_count)
 
@@ -70,8 +87,8 @@ class Node(object):
             self.product_name = random.choice(products)
             self.product_count = 3
             print("No products left!! Re-initializing with", self.product_name, self.product_count)
-        t.Lock().release()
-        print("Released the lock")
+        # t.Lock().release()
+        # print("Released the lock")
 
     def lookup_t(self, product_name, hopcount, peer_path):
 
@@ -90,13 +107,13 @@ class Node(object):
     def lookup(self, product_name, hopcount, peer_path):
         lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path, ))
         lookup_thread.start()
-        buy_thread = t.Thread(target=self.buy_timer)
-        buy_thread.start()
 
     def reply_t(self, sellerid, peer_path):
         if len(peer_path) < 1:
-            self.sellers_list.append(sellerid)
-            return
+            peer_node = Pyro4.Proxy("PYRONAME:" + sellerid)
+            if self.product_to_buy == peer_node.get_product_name():  # This ensure that you are buying what you want
+                self.sellers_list.append(sellerid)
+                return
 
         for neighbour in self.neighbourlist:
             if peer_path  and neighbour.get_node_id() == peer_path[-1]:
@@ -107,20 +124,6 @@ class Node(object):
         reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, ))
         reply_thread.start()
 
-    def buy_timer(self):
-        wait_time = random.random() * self.wait_time * 1000  # Multiplying with 1000 for milliseconds
-        start_time = int(round(time.time() * 1000))  # In milliseconds
-
-        # We'll wait for 1 second before checking again if we've passed the randomly selected wait time
-
-        while start_time + wait_time > int(round(time.time() * 1000)):
-            time.sleep(1)
-
-        if self.sellers_list:
-            selected_seller = random.choice(self.sellers_list)
-            self.buy(selected_seller)
-        else:
-            print("Buy order failed !!")
 
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
