@@ -1,12 +1,11 @@
 from __future__ import print_function
 
 import random
-
-import Pyro4
-import socket
+import sys
 import threading as t
 import time
-import sys
+
+import Pyro4
 
 products = ['fish', 'salt', 'boars']
 
@@ -38,12 +37,12 @@ class Node(object):
     def get_product_name(self):
         return self.product_name
 
-    def init(self, node_id, ip, peertype, wait_time = 1, product_count = 3, hop_count = 3):
+    def init(self, node_id, ip, peertype, max_wait_time=1, product_count=3, hop_count=3):
         self.node_id = node_id
         self.ip = ip
         self.peertype = peertype
         self.neighbourlist = []
-        self.wait_time = wait_time
+        self.wait_time = max_wait_time
         if peertype == 'seller':
             self.product_name = random.choice(products)
             self.product_count = product_count
@@ -67,8 +66,6 @@ class Node(object):
                 self.buy(selected_seller)
             else:
                 print("Buy order failed !!")
-
-
 
     def node_start(self):
         node_start_thread = t.Thread(target=self.node_start_t())
@@ -105,7 +102,7 @@ class Node(object):
             neighbour.lookup(product_name, hopcount, peer_path + [self.node_id])
 
     def lookup(self, product_name, hopcount, peer_path):
-        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path, ))
+        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path,))
         lookup_thread.start()
 
     def reply_t(self, sellerid, peer_path):
@@ -116,14 +113,13 @@ class Node(object):
                 return
 
         for neighbour in self.neighbourlist:
-            if peer_path  and neighbour.get_node_id() == peer_path[-1]:
+            if peer_path and neighbour.get_node_id() == peer_path[-1]:
                 peer_path.pop()
                 neighbour.reply(sellerid, peer_path)
 
     def reply(self, sellerid, peer_path):
-        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, ))
+        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path,))
         reply_thread.start()
-
 
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
