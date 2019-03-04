@@ -4,10 +4,13 @@ import random
 import sys
 import threading as t
 import time
+import socket
 
 import Pyro4
 
 products = ['fish', 'salt', 'boars']
+Pyro4.config.NS_HOST = '128.119.243.168' #  socket.gethostbyname(socket.gethostname())
+Pyro4.config.NS_PORT = 9090
 
 
 @Pyro4.expose
@@ -42,7 +45,7 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time = 1, product_count = 3, hop_count = 3):
+    def init(self, node_id, ip, peertype, wait_time = 10, product_count = 3, hop_count = 3):
         self.node_id = node_id
         self.ip = ip
         self.peertype = peertype
@@ -57,7 +60,7 @@ class Node(object):
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
     def node_start_t(self):
-        for i in range(10):  # TO DO: Needs to be run infinitely
+        for i in range(100):  # TO DO: Needs to be run infinitely
             wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
 
             self.product_to_buy = random.choice(products)
@@ -143,8 +146,7 @@ class Node(object):
 
 def main():
     node_id = sys.argv[1]
-    Pyro4.Daemon.serveSimple({Node: node_id}, ns=True)
-
+    Pyro4.Daemon.serveSimple({Node: node_id}, host=socket.gethostbyname(socket.gethostname()), ns=True)
 
 if __name__ == "__main__":
     main()
