@@ -31,6 +31,7 @@ def main():
     for node in nodes.values():
         if node.get_peertype() == peer_types[0]:
             # TO DO: Create constants for peer types
+            print("Starting the node", node.get_node_id())
             node.node_start()
 
 if __name__ == "__main__":

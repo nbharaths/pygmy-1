@@ -25,6 +25,7 @@ class Node(object):
     sellers_list = []
     wait_time = None
     can_buy = True
+    lock = t.Lock()
 
     # exposed
     def get_peertype(self):
@@ -37,6 +38,10 @@ class Node(object):
     # exposed
     def get_product_name(self):
         return self.product_name
+
+    # exposed
+    def get_product_to_buy(self):
+        return self.product_to_buy
 
     def init(self, node_id, ip, peertype, wait_time = 1, product_count = 3, hop_count = 3):
         self.node_id = node_id
@@ -59,7 +64,6 @@ class Node(object):
             self.product_to_buy = random.choice(products)
             print("!! Searching for", self.product_to_buy)
             self.lookup(self.product_to_buy, self.hop_count, [])
-            print("Waiting for ", wait_time)
             time.sleep(wait_time)
 
             if self.sellers_list:
@@ -68,8 +72,6 @@ class Node(object):
             else:
                 print("Buy order failed !!")
 
-
-
     def node_start(self):
         node_start_thread = t.Thread(target=self.node_start_t())
         node_start_thread.start()
@@ -77,18 +79,19 @@ class Node(object):
     def add_neighbour(self, neighbour):
         self.neighbourlist.append(neighbour)
 
-    def transact(self):
-        # t.Lock().acquire()
-        # print("Acquired lock")
-        self.product_count -= 1
-        print("Selling", self.product_name, "Product Count", self.product_count)
-
+    def transact(self, buyerid):
         if self.product_count < 1:
             self.product_name = random.choice(products)
             self.product_count = 3
             print("No products left!! Re-initializing with", self.product_name, self.product_count)
-        # t.Lock().release()
-        # print("Released the lock")
+            return None
+
+        else:
+            buyer_node = Pyro4.Proxy("PYRONAME:" + buyerid)
+            if self.product_name == buyer_node.get_product_to_buy():  # This ensure that you are buying what you want
+                self.product_count -= 1
+                print("Selling", self.product_name, "Product Count", self.product_count)
+                return self.node_id, self.product_name
 
     def lookup_t(self, product_name, hopcount, peer_path):
 
@@ -124,16 +127,23 @@ class Node(object):
         reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, ))
         reply_thread.start()
 
-
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
-        print("Buying from", peerid, peer_node.get_product_name())
-        peer_node.transact()
-
+        # print("Buying from", peerid, peer_node.get_product_name())
+        # print("Trying to acquire")
+        self.lock.acquire()
+        # print("Acquired the lock")
+        seller_id = peer_node.transact(self.node_id)
+        # print("Trying to release")
+        self.lock.release()
+        if seller_id:
+            print("Bought from", seller_id)
+        else:
+            print("Couldn't buy")
+        # print("Released the lock")
 
 def main():
     node_id = sys.argv[1]
-
     Pyro4.Daemon.serveSimple({Node: node_id}, ns=True)
 
 
