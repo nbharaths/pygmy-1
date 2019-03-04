@@ -52,7 +52,7 @@ class Node(object):
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
     def node_start_t(self):
-        for i in range(10):  # TO DO: Needs to be run infinitely
+        for i in range(1000000):  # TO DO: Needs to be run infinitely
             wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
 
             self.product_to_buy = random.choice(products)
