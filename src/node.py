@@ -40,31 +40,27 @@ class Node(object):
         else:
             self.replies = []
             self.hop_count = 2
-        print("Initialized ", self.peertype, "node. ID:", self.node_id)
+        print("Initialized ", self.peertype, " ID -", self.node_id)
     # Randomly assign buyer or seller
 
     def node_start(self):
-        print("Starting the buying call for node", self.node_id)
-
-        for i in range(2):
+        for i in range(20):
             time.sleep(0.75)
-            self.lookup(random.choice(products), self.hop_count, [])
+            product_to_buy = random.choice(products)
+            self.lookup(product_to_buy, self.hop_count, [])
+            print("!! Searching for", product_to_buy)
 
     def add_neighbour(self, neighbour):
         self.neighbourlist.append(neighbour)
 
-    def dummy(self):
-        print('Hello')
-        self.product_count += 1
-
     def transact(self):
         self.product_count -= 1
-        print("Node:", self.node_id, "Selling", self.product_name, self.product_count)
+        print("Selling", self.product_name, "Product Count", self.product_count)
 
         if self.product_count == 0:
             self.product_name = random.choice(products)
             self.product_count = 3
-            print("Node:", self.node_id, "No products left", "Re-initializing with", self.product_name, self.product_count)
+            print("No products left!! Re-initializing with", self.product_name, self.product_count)
 
     def lookup_t(self, product_name, hopcount, peer_path):
 
@@ -74,14 +70,13 @@ class Node(object):
         hopcount -= 1
 
         if self.peertype == "seller" and product_name == self.product_name:
-            print("Seller found", self.node_id, "Path", peer_path)
+            print("Sending prompt to node -", peer_path[0])
             self.reply(self.node_id, peer_path)
 
         for neighbour in self.neighbourlist:
             neighbour.lookup(product_name, hopcount, peer_path + [self.node_id])
 
     def lookup(self, product_name, hopcount, peer_path):
-        print("Lookup called for", product_name, "Current hop count =", hopcount)
         lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path, ))
         lookup_thread.start()
 
@@ -96,7 +91,6 @@ class Node(object):
                 neighbour.reply(sellerid, peer_path)
 
     def reply(self, sellerid, peer_path):
-        print("Reply called for", sellerid, "Peer path =", peer_path)
         reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, ))
         reply_thread.start()
 
@@ -106,29 +100,15 @@ class Node(object):
         print('Bought from ', peerid)
 
     def buy(self, peerid):
-        print("Buy called for", peerid)
         buy_thread = t.Thread(target=self.buy_t, args=(peerid, ))
         buy_thread.start()
 
 
 def main():
     node_id = sys.argv[1]
-    # node_ip = sys.argv[2]
-    #
-    # products = ['fish', 'salt', 'boars']
-    # peer_types = ['buyer', 'seller']
 
-    Pyro4.Daemon.serveSimple({Node: node_id}, ns=True)
+    Pyro4.Daemon.serveSimple({Node: node_id}, host=socket.gethostname(), ns=True)
 
-    # peertype = random.choices(peer_types)
-    # if peertype == 'seller':
-    #     self.product_name = random.choice(products)
-    #     self.product_count = 3  # Configure this
-    # else:
-    #     self.replies = []
-    #     self.hop_count = 2
-    # print("Initialized ", self.peertype, "node. ID:", self.id
-# Randomly assign buyer or seller
 
 if __name__ == "__main__":
     main()
