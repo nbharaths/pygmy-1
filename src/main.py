@@ -1,38 +1,36 @@
 from __future__ import print_function
 
 import Pyro4
-
 import pandas as pd
 
-from node import Node
-
 products = ['fish', 'salt', 'boars']
+BUYER = 'buyer'  # Constants for readability
+SELLER = 'seller'
 
 
 def main():
     peer_types = ['buyer', 'seller']
-    df_ip = pd.read_csv('ips.csv', delimiter=',')
+    df_ip = pd.read_csv('ips.csv', delimiter=',')  # Read in Node IDs as well as IP Addresses
     n = df_ip.shape[0]
-    max_items = 3  # make this configurable
-    print('Number of nodes in network - ', n)
-    df_conn = pd.read_csv('connections.csv')
+    print('Number of nodes in the network - ', n)
+    df_conn = pd.read_csv('connections.csv')  # Read in the network topology edge-wise
 
-    nodes = {}
+    nodes = {}  # Dictionary that holds the Pyro4 proxy objects
     for index, row in df_ip.iterrows():
-        print("Connecting to uri:", "PYRONAME:"+row['Node'])
-        nodes[row['Node']] = Pyro4.Proxy("PYRONAME:"+row['Node'])
-        nodes[row['Node']].init(row['Node'], row['IP'], peer_types[index % 2])
+        print("Connecting to URI:", "PYRONAME:" + row['Node'])
+        nodes[row['Node']] = Pyro4.Proxy("PYRONAME:" + row['Node'])  # Creating the Proxy objects
+        nodes[row['Node']].init(row['Node'], row['IP'],
+                                peer_types[index % 2])  # Instantiating the peer with buyer/seller
         print(nodes[row['Node']].get_peertype())
 
-    for index, row in df_conn.iterrows():
+    for index, row in df_conn.iterrows():  # Adding adjacent peers for each peer to facilitate lookup
         nodes[row['Node1']].add_neighbour(nodes[row['Node2']])
         nodes[row['Node2']].add_neighbour(nodes[row['Node1']])
 
     for node in nodes.values():
-        if node.get_peertype() == peer_types[0]:
-            # TO DO: Create constants for peer types
-            print("Starting the node", node.get_node_id())
+        if node.get_peertype() == BUYER:  # Starts the lookup calls for every buyer
             node.node_start()
+
 
 if __name__ == "__main__":
     main()

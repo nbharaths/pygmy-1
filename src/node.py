@@ -1,12 +1,11 @@
 from __future__ import print_function
 
 import random
-
-import Pyro4
-import socket
+import sys
 import threading as t
 import time
-import sys
+
+import Pyro4
 
 products = ['fish', 'salt', 'boars']
 
@@ -108,7 +107,7 @@ class Node(object):
             neighbour.lookup(product_name, hopcount, peer_path + [self.node_id])
 
     def lookup(self, product_name, hopcount, peer_path):
-        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path, ))
+        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path,))
         lookup_thread.start()
 
     def reply_t(self, sellerid, peer_path):
@@ -119,12 +118,12 @@ class Node(object):
                 return
 
         for neighbour in self.neighbourlist:
-            if peer_path  and neighbour.get_node_id() == peer_path[-1]:
+            if peer_path and neighbour.get_node_id() == peer_path[-1]:
                 peer_path.pop()
                 neighbour.reply(sellerid, peer_path)
 
     def reply(self, sellerid, peer_path):
-        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, ))
+        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path,))
         reply_thread.start()
 
     def buy(self, peerid):
