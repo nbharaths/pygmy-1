@@ -19,14 +19,17 @@ def main():
 
     nodes = {}
     for index, row in df_ip.iterrows():
-        nodes[row['Node']] = Node(row['Node'], row['IP'], peer_types[index % 2])
+        print("Connecting to uri:", "PYRONAME:"+row['Node'])
+        nodes[row['Node']] = Pyro4.Proxy("PYRONAME:"+row['Node'])
+        nodes[row['Node']].init(row['Node'], row['IP'], peer_types[index % 2])
+        print(nodes[row['Node']].get_peertype())
 
     for index, row in df_conn.iterrows():
         nodes[row['Node1']].add_neighbour(nodes[row['Node2']])
         nodes[row['Node2']].add_neighbour(nodes[row['Node1']])
 
     for node in nodes.values():
-        if node.peertype == peer_types[0]:  # TO DO: Create constants for peer types
+        if node.get_peertype() == peer_types[0]:  # TO DO: Create constants for peer types
             node.node_start()
 
 if __name__ == "__main__":
