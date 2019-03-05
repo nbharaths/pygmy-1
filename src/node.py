@@ -4,6 +4,7 @@ import random
 import sys
 import threading as t
 import time
+import socket
 
 import Pyro4
 
@@ -62,6 +63,7 @@ class Node(object):
             self.hop_count = hop_count  # Hop counts for lookup
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
+    # Thread for starting the lookup call along with the background timer until the wait time
     def node_start_t(self):
         for i in range(100):  # TO DO: Needs to be run infinitely
             wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
@@ -142,9 +144,11 @@ class Node(object):
         # print("Trying to acquire")
         self.lock.acquire()  # Acquire a lock to ensure proper output if concurrent requests
         # print("Acquired the lock")
+        self.lock.acquire()
         seller_id = peer_node.transact(self.node_id)
         # print("Trying to release")
         self.lock.release()  # Release lock after transaction
+        self.lock.release()
         if seller_id:
             print("Bought from", seller_id)
         else:
