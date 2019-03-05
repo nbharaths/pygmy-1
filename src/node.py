@@ -10,7 +10,7 @@ import Pyro4
 
 products = ['fish', 'salt', 'boars']
 Pyro4.config.NS_HOST = '128.119.243.168' #  socket.gethostbyname(socket.gethostname())
-Pyro4.config.NS_PORT = 9090
+Pyro4.config.NS_PORT = 8111
 
 
 @Pyro4.expose
@@ -45,7 +45,7 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time = 10, product_count = 3, hop_count = 3):
+    def init(self, node_id, ip, peertype, wait_time = 4, product_count = 2, hop_count = 3):
         self.node_id = node_id
         self.ip = ip
         self.peertype = peertype
@@ -72,11 +72,15 @@ class Node(object):
                 selected_seller = random.choice(self.sellers_list)
                 self.buy(selected_seller)
             else:
-                print("Buy order failed !!")
+                print("Buy order failed, wait time was set to ", wait_time)
 
     def node_start(self):
-        node_start_thread = t.Thread(target=self.node_start_t())
+        print("Creating the node thread", self.node_id)
+        node_start_thread = t.Thread(target=self.node_start_t)
+        print("Starting the node thread", self.node_id)
         node_start_thread.start()
+        print("Started the node thread", self.node_id)
+        return
 
     def add_neighbour(self, neighbour):
         self.neighbourlist.append(neighbour)

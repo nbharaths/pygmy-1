@@ -7,7 +7,7 @@ products = ['fish', 'salt', 'boars']
 BUYER = 'buyer'  # Constants for readability
 SELLER = 'seller'
 Pyro4.config.NS_HOST = '128.119.243.168'
-Pyro4.config.NS_PORT = 9090
+Pyro4.config.NS_PORT = 8111
 
 
 def main():
@@ -30,9 +30,10 @@ def main():
         nodes[row['Node2']].add_neighbour(nodes[row['Node1']])
 
     for node in nodes.values():
+        print("Starting node -", node.get_node_id())
         if node.get_peertype() == BUYER:  # Starts the lookup calls for every buyer
             node.node_start()
-
+        print("Started node -", node.get_node_id())
 
 if __name__ == "__main__":
     main()
