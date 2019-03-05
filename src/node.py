@@ -4,6 +4,7 @@ import random
 import sys
 import threading as t
 import time
+import socket
 
 import Pyro4
 
@@ -32,6 +33,7 @@ class Node(object):
     can_buy = True
     lock = t.Lock()
     product_to_buy = None
+    timestamp = None
 
     # exposed
     def get_peertype(self):  # Methods exposed for remote calls
@@ -66,10 +68,10 @@ class Node(object):
     def node_start_t(self):
         for i in range(100):  # TO DO: Needs to be run infinitely
             wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
-
+            self.timestamp = time.time()
             self.product_to_buy = random.choice(products)
             print("Searching for", self.product_to_buy)
-            self.lookup(self.product_to_buy, self.hop_count, [])  # Start the lookup call
+            self.lookup(self.product_to_buy, self.hop_count, [], self.timestamp)  # Start the lookup call
             time.sleep(wait_time)
 
             if self.sellers_list:  # If list of sellers populated
@@ -103,7 +105,7 @@ class Node(object):
                 print("Selling", self.product_name, "Product Count", self.product_count)
                 return self.node_id, self.product_name
 
-    def lookup_t(self, product_name, hopcount, peer_path):
+    def lookup_t(self, product_name, hopcount, peer_path, timestamp):
 
         if hopcount == 0:
             return
@@ -112,33 +114,45 @@ class Node(object):
 
         if self.peertype == SELLER and product_name == self.product_name:
             print("Sending prompt to node -", peer_path[0])  # Send a reply
-            self.reply(self.node_id, peer_path)
+            self.reply(self.node_id, peer_path, timestamp)
 
         for neighbour in self.neighbourlist:  # Call lookup in a flood-fill manner
-            neighbour.lookup(product_name, hopcount, peer_path + [self.node_id])
+            neighbour.lookup(product_name, hopcount, peer_path + [self.node_id], timestamp)
 
-    def lookup(self, product_name, hopcount, peer_path):
-        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path,))
+    def lookup(self, product_name, hopcount, peer_path, timestamp):
+        lookup_thread = t.Thread(target=self.lookup_t, args=(product_name, hopcount, peer_path, timestamp))
         lookup_thread.start()
 
-    def reply_t(self, sellerid, peer_path):
+    def reply_t(self, sellerid, peer_path, timestamp):
         if len(peer_path) < 1:  # Reply has come back to original buyer
             peer_node = Pyro4.Proxy("PYRONAME:" + sellerid)
-            if self.product_to_buy == peer_node.get_product_name():  # This ensures that you are buying what you want
+            # This ensures that you are buying what you want and not accepting stale replies
+            if self.product_to_buy == peer_node.get_product_name() and timestamp == self.timestamp:
                 self.sellers_list.append(sellerid)
                 return
 
         for neighbour in self.neighbourlist:
             if peer_path and neighbour.get_node_id() == peer_path[-1]:  # Reverse the path to buyer
                 peer_path.pop()
-                neighbour.reply(sellerid, peer_path)
+                neighbour.reply(sellerid, peer_path, timestamp)
 
-    def reply(self, sellerid, peer_path):
-        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path,))
+    def reply(self, sellerid, peer_path, timestamp):
+        reply_thread = t.Thread(target=self.reply_t, args=(sellerid, peer_path, timestamp))
         reply_thread.start()
 
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
+
+        # For getting the RPC latency.
+        # Assumption: We'll be making a RPC and record the time for getting the reply back
+        start_time = time.time()
+        peer_node.get_node_id()
+        end_time = time.time()
+        print("RPC call from ", self.node_id, "to", peerid, "took:", (end_time-start_time) * 1000, "ms")
+        file_name = self.node_id+"-"+peerid
+        f = open(file_name, 'a')
+        f.write(str((end_time-start_time) * 1000)+"\n")
+
         self.lock.acquire()
         seller_id = peer_node.transact(self.node_id)
         self.lock.release()  # Release lock after transaction
