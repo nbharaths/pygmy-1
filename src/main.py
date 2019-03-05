@@ -6,8 +6,8 @@ import pandas as pd
 products = ['fish', 'salt', 'boars']
 BUYER = 'buyer'  # Constants for readability
 SELLER = 'seller'
-Pyro4.config.NS_HOST = '128.119.243.168'
-Pyro4.config.NS_PORT = 8111
+# Pyro4.config.NS_HOST = '128.119.243.168'
+# Pyro4.config.NS_PORT = 8111
 
 
 def main():

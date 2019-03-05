@@ -9,13 +9,14 @@ import socket
 import Pyro4
 
 products = ['fish', 'salt', 'boars']
-Pyro4.config.NS_HOST = '128.119.243.168' #  socket.gethostbyname(socket.gethostname())
-Pyro4.config.NS_PORT = 8111
+# Pyro4.config.NS_HOST = '128.119.243.168' #  socket.gethostbyname(socket.gethostname())
+# Pyro4.config.NS_PORT = 8111
 
 
 @Pyro4.expose
 @Pyro4.behavior(instance_mode="single")
 class Node(object):
+
     node_id = None
     ip = None
     peertype = None
@@ -28,6 +29,9 @@ class Node(object):
     wait_time = None
     can_buy = True
     lock = t.Lock()
+    product_to_buy = None
+    start_time = None
+    end_time = None
 
     # exposed
     def get_peertype(self):
@@ -45,7 +49,16 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time = 4, product_count = 2, hop_count = 3):
+    # exposed
+    def get_start_time(self):
+        return self.start_time
+
+    # exposed
+    def get_end_time(self):
+        return self.end_time
+
+    # Initialising the Node object. Randomly assigning which product it will sell in the case of a Seller.
+    def init(self, node_id, ip, peertype, wait_time = 4, product_count = 2, hop_count = 5):
         self.node_id = node_id
         self.ip = ip
         self.peertype = peertype
@@ -59,15 +72,16 @@ class Node(object):
             self.hop_count = hop_count
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
+    # Thread for starting the lookpup call along with the background timer until the wait time
     def node_start_t(self):
-        for i in range(100):  # TO DO: Needs to be run infinitely
-            wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
-
+        for i in range(10):  # TO DO: Needs to be run infinitely
+            wait_time = random.random() * self.wait_time
+            self.start_time = time.time()
             self.product_to_buy = random.choice(products)
-            print("!! Searching for", self.product_to_buy)
+            print("Searching for", self.product_to_buy)
             self.lookup(self.product_to_buy, self.hop_count, [])
             time.sleep(wait_time)
-
+            print(self.sellers_list)
             if self.sellers_list:
                 selected_seller = random.choice(self.sellers_list)
                 self.buy(selected_seller)
@@ -119,6 +133,7 @@ class Node(object):
 
     def reply_t(self, sellerid, peer_path):
         if len(peer_path) < 1:
+
             peer_node = Pyro4.Proxy("PYRONAME:" + sellerid)
             if self.product_to_buy == peer_node.get_product_name():  # This ensure that you are buying what you want
                 self.sellers_list.append(sellerid)
@@ -135,22 +150,17 @@ class Node(object):
 
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
-        # print("Buying from", peerid, peer_node.get_product_name())
-        # print("Trying to acquire")
         self.lock.acquire()
-        # print("Acquired the lock")
         seller_id = peer_node.transact(self.node_id)
-        # print("Trying to release")
         self.lock.release()
         if seller_id:
             print("Bought from", seller_id)
         else:
             print("Couldn't buy")
-        # print("Released the lock")
 
 def main():
     node_id = sys.argv[1]
-    Pyro4.Daemon.serveSimple({Node: node_id}, host=socket.gethostbyname(socket.gethostname()), ns=True)
+    Pyro4.Daemon.serveSimple({Node: node_id}, host= '192.168.0.8', ns=True)
 
 if __name__ == "__main__":
     main()
