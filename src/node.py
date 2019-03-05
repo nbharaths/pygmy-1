@@ -4,7 +4,6 @@ import random
 import sys
 import threading as t
 import time
-import socket
 
 import Pyro4
 
@@ -140,26 +139,19 @@ class Node(object):
 
     def buy(self, peerid):
         peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
-        # print("Buying from", peerid, peer_node.get_product_name())
-        # print("Trying to acquire")
-        self.lock.acquire()  # Acquire a lock to ensure proper output if concurrent requests
-        # print("Acquired the lock")
         self.lock.acquire()
         seller_id = peer_node.transact(self.node_id)
-        # print("Trying to release")
         self.lock.release()  # Release lock after transaction
-        self.lock.release()
         if seller_id:
             print("Bought from", seller_id)
         else:
             print("Couldn't buy")
-        # print("Released the lock")
 
 
 def main():
     node_id = sys.argv[1]
     # print(socket.gethostbyname(socket.gethostname()))
-    Pyro4.Daemon.serveSimple({Node: node_id}, host='192.168.0.6', ns=True)  # Starts the Server
+    Pyro4.Daemon.serveSimple({Node: node_id}, ns=True)  # Starts the Server
 
 
 if __name__ == "__main__":
