@@ -1,4 +1,6 @@
 Parameter,Value
 max_items,3
-hop_count,3
-max_wait_time,1
+hop_count,6
+max_wait_time,4
+NS_HOST,10.3.41.143
+NS_PORT,9090

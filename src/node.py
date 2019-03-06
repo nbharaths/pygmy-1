@@ -1,19 +1,16 @@
 from __future__ import print_function
 
 import random
-import socket
 import sys
 import threading as t
 import time
 
 import Pyro4
+import pandas as pd
 
 products = ['fish', 'salt', 'boars']
 BUYER = 'buyer'  # Constants for readability
 SELLER = 'seller'
-
-NS_HOST = 'elnux1'
-NS_PORT = 8115
 
 
 @Pyro4.expose
@@ -51,7 +48,7 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time=4, product_count=2, hop_count=3):
+    def init(self, node_id, ip, peertype, wait_time=4, product_count=2, hop_count=3, ns_host=None, ns_port=None):
         self.node_id = node_id  # Id of the node
         self.ip = ip  # IP address of the node
         self.peertype = peertype  # Type of the peer (buyer/seller)
@@ -62,6 +59,8 @@ class Node(object):
             self.product_count = product_count
         else:
             self.hop_count = hop_count  # Hop counts for lookup
+        self.ns_host = ns_host
+        self.ns_port = ns_port
         print("Initialized ", self.peertype, " ID -", self.node_id)
 
     # Thread for starting the lookup call along with the background timer until the wait time
@@ -108,7 +107,7 @@ class Node(object):
             return None
 
         else:
-            ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+            ns = Pyro4.locateNS(host=self.ns_host, port=self.ns_port)  # use your own nameserver
             uri = ns.lookup(buyerid)
             buyer_node = Pyro4.Proxy(uri)
             if self.product_name == buyer_node.get_product_to_buy():  # This ensures that you are buying what you want
@@ -136,12 +135,12 @@ class Node(object):
 
     def reply_t(self, sellerid, peer_path, timestamp):
         if len(peer_path) < 1:  # Reply has come back to original buyer
-            ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+            ns = Pyro4.locateNS(host=self.ns_host, port=self.ns_port)  # use your own nameserver
             uri = ns.lookup(sellerid)
             peer_node = Pyro4.Proxy(uri)
             if self.product_to_buy == peer_node.get_product_name():  # This ensures that you are buying what you want
                 self.sellers_list.append(sellerid)
-                self.sellers_time_list.append((time.time()-timestamp) * 1000)
+                self.sellers_time_list.append((time.time() - timestamp) * 1000)
                 return
 
         for neighbour in self.neighbourlist:
@@ -154,7 +153,7 @@ class Node(object):
         reply_thread.start()
 
     def buy(self, peerid):
-        ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+        ns = Pyro4.locateNS(host=self.ns_host, port=self.ns_port)  # use your own nameserver
         uri = ns.lookup(peerid)
         peer_node = Pyro4.Proxy(uri)
 
@@ -163,10 +162,10 @@ class Node(object):
         start_time = time.time()
         peer_node.get_node_id()
         end_time = time.time()
-        print("RPC call from ", self.node_id, "to", peerid, "took:", (end_time-start_time) * 1000, "ms")
-        file_name = self.node_id+"-"+peerid
+        print("RPC call from ", self.node_id, "to", peerid, "took:", (end_time - start_time) * 1000, "ms")
+        file_name = self.node_id + "-" + peerid
         f = open(file_name, 'a')
-        f.write(str((end_time-start_time) * 1000)+"\n")
+        f.write(str((end_time - start_time) * 1000) + "\n")
 
         self.lock.acquire()
         seller_id = peer_node.transact(self.node_id)
@@ -179,8 +178,18 @@ class Node(object):
 
 def main():
     node_id = sys.argv[1]
-    Pyro4.Daemon.serveSimple({Node: node_id}, host=socket.gethostbyname(socket.gethostname()),
-                             ns=True)  # Starts the Server
+    df_params = pd.read_csv('params.csv', delimiter=',')
+    NS_HOST = df_params['Value'][3]
+    NS_PORT = int(df_params['Value'][4])
+
+    daemon = Pyro4.Daemon(host="10.3.41.143")
+    ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)
+    uri = daemon.register(Node)
+    ns.register(node_id, uri)
+
+    print("Ready")
+    print(uri)
+    daemon.requestLoop()
 
 
 if __name__ == "__main__":
