@@ -31,7 +31,7 @@ def main():
         nodes[row['Node']] = Pyro4.Proxy(uri)
         nodes[row['Node']].init(row['Node'], row['IP'],
                                 random.choice(peer_types), max_wait_time, max_items, hop_count, NS_HOST,
-                                NS_PORT)  # Instantiating the peer with buyer/seller
+                                NS_PORT)  # Instantiating the peer with buyer/seller randomly
         print(nodes[row['Node']].get_peertype())
 
     for index, row in df_conn.iterrows():  # Adding adjacent peers for each peer to facilitate lookup

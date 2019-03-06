@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import random
+import socket
 import sys
 import threading as t
 import time
@@ -182,7 +183,7 @@ def main():
     NS_HOST = df_params['Value'][3]
     NS_PORT = int(df_params['Value'][4])
 
-    daemon = Pyro4.Daemon(host="10.3.41.143")
+    daemon = Pyro4.Daemon(host=socket.gethostbyname(socket.gethostname()))
     ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)
     uri = daemon.register(Node)
     ns.register(node_id, uri)
