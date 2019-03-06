@@ -6,8 +6,9 @@ import pandas as pd
 products = ['fish', 'salt', 'boars']
 BUYER = 'buyer'  # Constants for readability
 SELLER = 'seller'
-# Pyro4.config.NS_HOST = '128.119.243.168'
-# Pyro4.config.NS_PORT = 8111
+
+NS_HOST = 'elnux1'
+NS_PORT = 8115
 
 
 def main():
@@ -20,7 +21,9 @@ def main():
     nodes = {}  # Dictionary that holds the Pyro4 proxy objects
     for index, row in df_ip.iterrows():
         print("Connecting to URI:", "PYRONAME:" + row['Node'])
-        nodes[row['Node']] = Pyro4.Proxy("PYRONAME:" + row['Node'])  # Creating the Proxy objects
+        ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+        uri = ns.lookup(row['Node'])
+        nodes[row['Node']] = Pyro4.Proxy(uri)
         nodes[row['Node']].init(row['Node'], row['IP'],
                                 peer_types[index % 2])  # Instantiating the peer with buyer/seller
         print(nodes[row['Node']].get_peertype())
@@ -34,6 +37,7 @@ def main():
         if node.get_peertype() == BUYER:  # Starts the lookup calls for every buyer
             node.node_start()
         print("Started node -", node.get_node_id())
+
 
 if __name__ == "__main__":
     main()
