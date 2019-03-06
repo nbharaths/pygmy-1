@@ -20,7 +20,6 @@ SELLER = 'seller'
 @Pyro4.expose
 @Pyro4.behavior(instance_mode="single")
 class Node(object):
-
     # Object variable initialized, not keeping them in an init function call because of a Pyro constraint
     node_id = None
     ip = None
@@ -57,10 +56,10 @@ class Node(object):
 
     # Custom init call kept due to Pyro proxy object initialization constraints
     def init(self, node_id, ip, peertype, wait_time=4, product_count=2, hop_count=3, ns_host=None, ns_port=None):
-        self.node_id = node_id      # Id of the node
-        self.ip = ip                # IP address of the node
-        self.peertype = peertype    # Type of the peer (buyer/seller)
-        self.neighbourlist = []     # List of adjacent peers
+        self.node_id = node_id  # Id of the node
+        self.ip = ip  # IP address of the node
+        self.peertype = peertype  # Type of the peer (buyer/seller)
+        self.neighbourlist = []  # List of adjacent peers
         self.wait_time = wait_time  # Time to wait after buyer lookup
         if peertype == SELLER:
             self.product_name = random.choice(products)
@@ -87,14 +86,14 @@ class Node(object):
             time.sleep(wait_time)
 
             if self.sellers_list:  # If list of sellers populated
-                print(self.sellers_time_list)
+                # print(self.sellers_time_list)
                 selected_seller = random.choice(self.sellers_list)  # Choose a seller randomly and try to transact
                 self.buy(selected_seller)
                 file_name = self.node_id + "_search_request_time"
                 f = open(file_name, 'a')
                 f.write(str(self.sellers_time_list[0]) + "\n")
             else:
-                print("Buy order failed, wait time was set to ", wait_time)
+                print("Buy order failed")  # , wait time was set to ", wait_time)
 
     # This is the method starting the node thread
     def node_start(self):
@@ -174,7 +173,7 @@ class Node(object):
         peer_node = Pyro4.Proxy(uri)
 
         # For getting the RPC latency.
-        # Assumption: We'll be making a RPC and record the time for getting the reply back
+        # Assumption: We'll be making an RPC and record the time for getting back the reply
         start_time = time.time()
         peer_node.get_node_id()
         end_time = time.time()
