@@ -1,11 +1,10 @@
 from __future__ import print_function
 
 import random
+import socket
 import sys
 import threading as t
 import time
-import socket
-import os
 
 import Pyro4
 
@@ -13,9 +12,8 @@ products = ['fish', 'salt', 'boars']
 BUYER = 'buyer'  # Constants for readability
 SELLER = 'seller'
 
-
-# Pyro4.config.NS_HOST = '192.168.43.23' #  socket.gethostbyname(socket.gethostname())
-# Pyro4.config.NS_PORT = 9090
+NS_HOST = 'elnux1'
+NS_PORT = 8115
 
 
 @Pyro4.expose
@@ -53,7 +51,7 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time=0.5, product_count=2, hop_count=3):
+    def init(self, node_id, ip, peertype, wait_time=4, product_count=2, hop_count=3):
         self.node_id = node_id  # Id of the node
         self.ip = ip  # IP address of the node
         self.peertype = peertype  # Type of the peer (buyer/seller)
@@ -79,7 +77,7 @@ class Node(object):
             self.product_to_buy = random.choice(products)
             print("Searching for", self.product_to_buy)
             self.lookup(self.product_to_buy, self.hop_count, [], self.timestamp)  # Start the lookup call
-            time.sleep(self.wait_time)
+            time.sleep(wait_time)
 
             if self.sellers_list:  # If list of sellers populated
                 print(self.sellers_time_list)
@@ -110,7 +108,9 @@ class Node(object):
             return None
 
         else:
-            buyer_node = Pyro4.Proxy("PYRONAME:" + buyerid)
+            ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+            uri = ns.lookup(buyerid)
+            buyer_node = Pyro4.Proxy(uri)
             if self.product_name == buyer_node.get_product_to_buy():  # This ensures that you are buying what you want
                 self.product_count -= 1
                 print("Selling", self.product_name, "Product Count", self.product_count)
@@ -136,9 +136,10 @@ class Node(object):
 
     def reply_t(self, sellerid, peer_path, timestamp):
         if len(peer_path) < 1:  # Reply has come back to original buyer
-            peer_node = Pyro4.Proxy("PYRONAME:" + sellerid)
-            # This ensures that you are buying what you want and not accepting stale replies
-            if self.product_to_buy == peer_node.get_product_name() and timestamp == self.timestamp:
+            ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+            uri = ns.lookup(sellerid)
+            peer_node = Pyro4.Proxy(uri)
+            if self.product_to_buy == peer_node.get_product_name():  # This ensures that you are buying what you want
                 self.sellers_list.append(sellerid)
                 self.sellers_time_list.append((time.time()-timestamp) * 1000)
                 return
@@ -153,7 +154,9 @@ class Node(object):
         reply_thread.start()
 
     def buy(self, peerid):
-        peer_node = Pyro4.Proxy("PYRONAME:" + peerid)
+        ns = Pyro4.locateNS(host=NS_HOST, port=NS_PORT)  # use your own nameserver
+        uri = ns.lookup(peerid)
+        peer_node = Pyro4.Proxy(uri)
 
         # For getting the RPC latency.
         # Assumption: We'll be making a RPC and record the time for getting the reply back
@@ -176,8 +179,8 @@ class Node(object):
 
 def main():
     node_id = sys.argv[1]
-    # print(socket.gethostbyname(socket.gethostname()))
-    Pyro4.Daemon.serveSimple({Node: node_id}, ns=True)  # Starts the Server
+    Pyro4.Daemon.serveSimple({Node: node_id}, host=socket.gethostbyname(socket.gethostname()),
+                             ns=True)  # Starts the Server
 
 
 if __name__ == "__main__":
