@@ -21,8 +21,14 @@ def main():
     for index, row in df_ip.iterrows():
         print("Connecting to URI:", "PYRONAME:" + row['Node'])
         nodes[row['Node']] = Pyro4.Proxy("PYRONAME:" + row['Node'])  # Creating the Proxy objects
-        nodes[row['Node']].init(row['Node'], row['IP'],
-                                peer_types[index % 2])  # Instantiating the peer with buyer/seller
+        # For the evaluation experiments
+        if row['Node'] == 'P1':
+            cur_peer_type = SELLER
+        else:
+            cur_peer_type = BUYER
+        nodes[row['Node']].init(row['Node'], row['IP'],cur_peer_type)
+        # nodes[row['Node']].init(row['Node'], row['IP'],
+        #                         peer_types[index % 2])  # Instantiating the peer with buyer/seller
         print(nodes[row['Node']].get_peertype())
 
     for index, row in df_conn.iterrows():  # Adding adjacent peers for each peer to facilitate lookup

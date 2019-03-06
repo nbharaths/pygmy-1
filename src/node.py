@@ -5,6 +5,7 @@ import sys
 import threading as t
 import time
 import socket
+import os
 
 import Pyro4
 
@@ -29,6 +30,7 @@ class Node(object):
     hop_count = None
     neighbourlist = None
     sellers_list = []
+    sellers_time_list = []
     wait_time = None
     can_buy = True
     lock = t.Lock()
@@ -51,7 +53,7 @@ class Node(object):
     def get_product_to_buy(self):
         return self.product_to_buy
 
-    def init(self, node_id, ip, peertype, wait_time=4, product_count=2, hop_count=3):
+    def init(self, node_id, ip, peertype, wait_time=0.5, product_count=2, hop_count=3):
         self.node_id = node_id  # Id of the node
         self.ip = ip  # IP address of the node
         self.peertype = peertype  # Type of the peer (buyer/seller)
@@ -67,16 +69,25 @@ class Node(object):
     # Thread for starting the lookup call along with the background timer until the wait time
     def node_start_t(self):
         for i in range(100):  # TO DO: Needs to be run infinitely
+
+            # Reinitializing the lists
+            self.sellers_list = []
+            self.sellers_time_list = []
+
             wait_time = random.random() * self.wait_time  # Multiplying with 1000 for milliseconds
             self.timestamp = time.time()
             self.product_to_buy = random.choice(products)
             print("Searching for", self.product_to_buy)
             self.lookup(self.product_to_buy, self.hop_count, [], self.timestamp)  # Start the lookup call
-            time.sleep(wait_time)
+            time.sleep(self.wait_time)
 
             if self.sellers_list:  # If list of sellers populated
+                print(self.sellers_time_list)
                 selected_seller = random.choice(self.sellers_list)  # Choose a seller randomly and try to transact
                 self.buy(selected_seller)
+                file_name = self.node_id + "_search_request_time"
+                f = open(file_name, 'a')
+                f.write(str(self.sellers_time_list[0]) + "\n")
             else:
                 print("Buy order failed, wait time was set to ", wait_time)
 
@@ -129,6 +140,7 @@ class Node(object):
             # This ensures that you are buying what you want and not accepting stale replies
             if self.product_to_buy == peer_node.get_product_name() and timestamp == self.timestamp:
                 self.sellers_list.append(sellerid)
+                self.sellers_time_list.append((time.time()-timestamp) * 1000)
                 return
 
         for neighbour in self.neighbourlist:
